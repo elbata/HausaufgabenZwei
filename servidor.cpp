@@ -330,14 +330,16 @@ void * prueba(void* parametro){
             sizeRecibido = recv(socket_aux,  recibido, datos_size, 0);
 	    string aux1 (recibido);
 	    //me fijo si termino el cabezal http, termina con doble salto de linea
-	    size_t encontre = aux1.find("\r\n\r\n",0);
+	      buffer = buffer + char_string(recibido).substr(0,sizeRecibido);
+	    size_t encontre = buffer.find("\r\n\r\n",0);
 	    if (encontre !=-1) 
 	      finCabezal = true;
-	    buffer+= aux1;
+	    //buffer+= aux1;
+	  
             // libero memoria de recibido
             free(recibido);
         }
-        //cout<< "Soy el servidor proxy, me mandaste esta boludez:\n" << buffer;cout.flush();
+        cout<< "Soy el servidor proxy, me mandaste esta boludez:\n" << buffer;cout.flush();
 
         int comienzo = 0;
 	string metodoHTTP="";
@@ -345,29 +347,38 @@ void * prueba(void* parametro){
         int inicio = buffer.find("HTTP/1.1");
 	int finMetodo;
 	int finUrl;
-
+	bool metvalido = true;
         if(inicio>0){
 	  buffer.replace(inicio,8,"HTTP/1.0" );
-	  int finMetodo = buffer.find("http://",comienzo);
-	  cout<<"Fin metodo: "<<finMetodo<<"\n";cout.flush();
-	  metodoHTTP=buffer.substr(0,finMetodo-1);
-	  cout<<"Metodo HTTP: "<<metodoHTTP<<"\n";cout.flush();
-	  int posBarra = buffer.find("/",finMetodo+8);
-	  cout<<"Posbarra: "<<posBarra<<"\n";cout.flush();
-	  finUrl= buffer.find(" ",posBarra);
-	  url=buffer.substr(finMetodo+7,finUrl-(finMetodo+8));
-	  cout<<"url: "<<url<<"\n";cout.flush();
-	  buffer.erase(finMetodo,posBarra - finMetodo);
+	  int finMetodo = buffer.find("http",comienzo);
+	  //cout<<"Fin metodo: "<<finMetodo<<"\n";cout.flush();
+	  metodoHTTP = buffer.substr(0,finMetodo-1);
+	  string hola = buffer.substr(0,12);cout<<hola;cout.flush();
+	  if (comprobarMetodo(hola) ) {
+	    
+	    //cout<<"Metodo HTTP: "<<metodoHTTP<<"\n";cout.flush();
+	    int posBarra = buffer.find("/",finMetodo+7);
+	 //   cout<<"Posbarra: "<<posBarra<<"\n";cout.flush();
+	    finUrl= buffer.find(" ",posBarra);
+	    url=buffer.substr(finMetodo+7,finUrl-(finMetodo+7));
+	   // cout<<"url: "<<url<<"\n";cout.flush();
+	    buffer.erase(finMetodo,posBarra - finMetodo);
+	    metvalido = true;
+	  }
+	  else {
+	    cout<<"metodo invalido";cout.flush();
+	    metvalido = false;
+	  }
 	}else{
 	  finMetodo=buffer.find("/",comienzo);
-	   cout<<"Fin metodo: "<<finMetodo<<"\n";cout.flush();
+	  //cout<<"Fin metodo: "<<finMetodo<<"\n";cout.flush();
 	  finUrl= buffer.find(" ",finMetodo+1);
 	  url=buffer.substr(finMetodo+1,finUrl-(finMetodo+1));
-	  cout<<"url: "<<url<<"\n";cout.flush();
+	  //cout<<"url: "<<url<<"\n";cout.flush();
 	  metodoHTTP=buffer.substr(0,finMetodo-1);
 	}
 	
-	if(comprobarMetodo(metodoHTTP) && comprobarURL(url)){
+	if(metvalido && comprobarURL(url) ){
 		
 		//obtengo el nombre del host para realizar una busqueda dns del IP
 		int posHost;
@@ -382,7 +393,7 @@ void * prueba(void* parametro){
 		
 		buffer+="\r\n\r\n";
 		
-		cout<<buffer;cout.flush();
+		//cout<<buffer;cout.flush();
 		//aca tengo q conectarme con el servidor posta, recibir la pagina y reenviarsela al cliente
 		struct sockaddr_in server_original;
 		server_original.sin_family = AF_INET; //tipo de conexion
@@ -392,38 +403,52 @@ void * prueba(void* parametro){
 
 		char * h = &nombreHost[0];
 		struct hostent * host = gethostbyname (h);
-		int ** prueba = (int **)host->h_addr_list;
-		server_original.sin_addr.s_addr = **prueba; //direccion del servidor
+		if (host != NULL){
+		  int ** prueba = (int **)host->h_addr_list;
+		  server_original.sin_addr.s_addr = **prueba; //direccion del servidor
 
-		//modifico el mensaje para q sea del tipo HTTP 1.0
-		int posUserAgent;
-		int posFinUser;
+		  //modifico el mensaje para q sea del tipo HTTP 1.0
+		  int posUserAgent;
+		  int posFinUser;
 
-		//mando el mensaje nuevo
-		char * mensaje = &buffer[0];
-		connect(socknuevo, (struct sockaddr *)&server_original,sizeof(struct sockaddr));
-		send(socknuevo,mensaje,strlen(mensaje),0);
+		  //mando el mensaje nuevo
+		  char * mensaje = &buffer[0];
+		  connect(socknuevo, (struct sockaddr *)&server_original,sizeof(struct sockaddr));
+		  send(socknuevo,mensaje,strlen(mensaje),0);
 
 
-		// Recibo el mensaje de a partes. El mensaje se va guardando en "buffer"
-	        // Cuando el "sizeRecibido" es menor que el máximo el mensaje se ha
-		// completado.
-		buffer="";
-		char * recibido2;
-		sizeRecibido = MAX_BUFF_MSG;
-		while (sizeRecibido !=0){
-		    recibido2 = (char *) malloc(MAX_BUFF_MSG);
-		    sizeRecibido = recv(socknuevo, recibido2, datos_size, 0);
-		    //envio mensaje al cliente
-		    send(socket_aux,recibido2,sizeRecibido,0);
-		    // libero memoria de recibido
-		    free(recibido2);
+		  // Recibo el mensaje de a partes. El mensaje se va guardando en "buffer"
+		  // Cuando el "sizeRecibido" es menor que el máximo el mensaje se ha
+		  // completado.
+		  buffer="";
+		  char * recibido2;
+		  sizeRecibido = MAX_BUFF_MSG;
+		  while (sizeRecibido !=0){
+		      recibido2 = (char *) malloc(MAX_BUFF_MSG);
+		      sizeRecibido = recv(socknuevo, recibido2, datos_size, 0);
+		      //envio mensaje al cliente
+		    // cout<<recibido2;cout.flush();
+		      send(socket_aux,recibido2,sizeRecibido,0);
+		      // libero memoria de recibido
+		      free(recibido2);
+		  }
 		}
-
 
 		close(socknuevo);
 
 	}//fin de conexion con el servidor host, siendo metodo y url validos
+	else{
+	  //aca hay que mandar el mensaje de error correspondiente...
+	  //los metemos en un archivo nuevo???
+	  //ver posibles mensajes de error...
+	  cout<<"entre al else\n";cout.flush();
+	  string merror="HTTP/1.1 404 Not Found\r\n\r\n<html>\r\n<head>\r\n</head>\r\n<body>\r\n  <h1>404 bloqueado por redes26</h1>\r\n</body>\r\n</html>\r\n\r\n";
+	  char * mensajeError = (char*)merror.c_str();
+	  int cant = send(socket_aux,mensajeError,strlen(mensajeError),0);
+	  if (cant ==-1)
+	      cout<<"fallo el send\n";cout.flush();
+
+	}
 	
         //cierro la conexion
         close (socket_aux);
@@ -437,7 +462,11 @@ int main() {
     
     pthread_t ad;
     int alpedo=2;
-    pthread_create(&ad,NULL,atencion_administrador,(void*)alpedo);
+    
+    if (pthread_create(&ad,NULL,atencion_administrador,(void*)alpedo)!=0)
+    {
+      cout<<"Error, no se creo la atencion a administrador";cout.flush();
+    }
   
     booldenyPOST=false;
     booldenyGET=false;
@@ -457,28 +486,33 @@ int main() {
 
     //primitiva BIND
     //socket, puntero a sockaddr_in, tamaño de sockaddr_in
-    bind (server_socket, (struct sockaddr*) & server_addr, server_addr_size);
+    if (bind (server_socket, (struct sockaddr*) & server_addr, server_addr_size)!=0)
+    {
+      cout<<"Error, no se linkeo el socket al descriptor";cout.flush();
+    }
 
     //primitiva listen
-    listen (server_socket, MAX_QUEUE);
+    if (listen (server_socket, MAX_QUEUE)!=0)
+    {
+      cout<<"Error, no se pudo setear el listen sobre el socket";cout.flush();
+    }
 
 
 
     while (true){
-
-
-        // inicializo estructuras para primitiva ACCEPT
-
         //Contendra la direccion IP y numero de puerto del cliente
         struct sockaddr_in client_addr;
         socklen_t client_addr_size = sizeof client_addr;
         int socket_to_client;
 	
-cout<<"aca llego000";cout.flush();
         //espero por conexion de clientes
         socket_to_client = accept(server_socket, (struct sockaddr*) & client_addr,& client_addr_size);
+	if (socket_to_client!=0)
+	{
+	  cout<<"Error,no se pudo realizar la espera de conexiones de clientes";cout.flush();
+	}
+	
 	pthread_t hijo;
-	cout<<"acaaaaaaaa";cout.flush();
 	pthread_create(&hijo,NULL,prueba,(void*)&socket_to_client);
 
     }

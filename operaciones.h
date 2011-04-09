@@ -16,6 +16,10 @@
 
 using namespace std;
 
+#define pagina_error ="HTTP/1.1 404 Not Found\r\n<html>\r\n<head>\r\n</head>\r\n<body>\r\n  <h1>404 Pagina no encontrada</h1>\r\n</body>\r\n</html>\r\n\r\n"
+
+
+
 string printList(list<string>);
 string char_string( char*);
 string obtenerArgumento(string);
