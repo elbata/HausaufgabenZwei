@@ -131,37 +131,17 @@ int main(int argc, char** argv) {
       //Tercero,si todo lo anterior esta bien se ejecuta el codigo q esta abajo, hay q hacer cambios, por ejemplo los controles del metodo y  url hacerlos los pasos anteriores y no aca, lo q si hay q hacer
       //es extraer bien el host y las partes para enviar el mensaje http al servidor.
       
-      bool metodoValido = true; //llamar funcion verificarMetodo despues de obtenerlo
+      //aca extraer lo necesario
+      
+      
+      
+      bool metodoValido = true; //llamar funcion comprobarMetodo despues de obtenerlo
       //aca hacer el if de si es valido
       if (metodoValido){
 	
-	bool urlValida = true;//llamar a funcion verificarUrl despues de obtenerla
+	bool urlValida = true;//llamar a funcion comprobarUrl despues de obtenerla
 	if (urlValida){
-	  if(isHttp1){//esto no se bien q es....
-	    char* httpCode1= strtok(recibido,"HTTP/1.1");
-	    cout<<"HTTPCODE!"<<httpCode1;cout.flush();
-	    int inicio = buffer.find("HTTP/1.1");
-	    buffer.replace(inicio,8,"HTTP/1.0" );
-	    int finMetodo = buffer.find("http://",comienzo);
-	    cout << "Fin Metodo: " << finMetodo << "\n"; cout.flush();
-	    metodoHTTP = buffer.substr(0,finMetodo-1);
-	    cout << "Metodo HTTP: " << metodoHTTP << "\n"; cout.flush();
-	    int posBarra = buffer.find("/",finMetodo+7);
-	    cout << "PosBarra: " << posBarra << "\n"; cout.flush();
-	    finUrl = buffer.find(" ",posBarra);
-	    url = buffer.substr(finMetodo+7,finUrl-(finMetodo+7));
-	    cout << "URL: " << url << "\n"; cout.flush();
-	    buffer.erase(finMetodo,posBarra - finMetodo);
-	  }/*else{
-	    finMetodo = buffer.find("/",comienzo);
-	    cout << "Fin metodo: " << finMetodo << "\n"; cout.flush();
-	    finUrl = buffer.find(" ",finMetodo+1);
-	    url = buffer.substr(finMetodo+1,finUrl-(finMetodo+1));
-	    cout << "url: " << url << "\n"; cout.flush();
-	    metodoHTTP = buffer.substr(0,finMetodo-1);
-	  }*/
-
-	  //if(comprobarMetodo(metodoHTTP) && comprobarURL(url)){
+	
 
 	    //obtengo el nombre del host para realizar una busqueda DNS del IP
 	    int posHost = buffer.find("Host: ",comienzo);
