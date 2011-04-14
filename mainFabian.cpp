@@ -18,7 +18,7 @@
 #include <signal.h>
 #include <list>
 #include "operaciones.h"
-#include "parser.h"
+//#include "parser.h"
 
 #define miPuerto 61000
 #define MAX_BUFF_MSG 1024*1024
@@ -181,9 +181,9 @@ int main(int argc, char** argv) {
 	    server_original.sin_family = AF_INET; //tipo de conexion
 	    server_original.sin_port = htons(80); //puerto del servidor
 	    bzero ( &(server_original.sin_zero), 8);
-	    int socknuevo = socket(AF_INET, SOCK_STREAM, 0);
-	    if (socknuevo == -1){
-	      cout << "Error socknuevo"; cout.flush();
+	    int socket_to_server = socket(AF_INET, SOCK_STREAM, 0);
+	    if (socket_to_server == -1){
+	      cout << "Error socket_to_server"; cout.flush();
 	      exit(-1);
 	    }
 	    char* h = &nombreHost[0];
@@ -198,53 +198,64 @@ int main(int argc, char** argv) {
 
 		  //mando el mensaje nuevo
 		  char* mensaje = &buffer[0];
-		  if (connect(socknuevo, (struct sockaddr*) &server_original, sizeof(struct sockaddr)) == -1){
+		  if (connect(socket_to_server, (struct sockaddr*) &server_original, sizeof(struct sockaddr)) == -1){
 		    cout << "Error connect"; cout.flush();
-		    close(socknuevo);
+		    close(socket_to_server);
 		    close(socket_to_client);
 		    exit(-1);
 		  }
-		  if (send(socknuevo,mensaje,strlen(mensaje),0) == -1){
+		  if (send(socket_to_server,mensaje,strlen(mensaje),0) == -1){
 		      cout << "Error send al server"; cout.flush();
-		      close(socknuevo);
+		      close(socket_to_server);
 		      close(socket_to_client);
 		      exit(-1);
 		  }
 
 		  //Recibo el mensaje de a partes. El mensaje se va guardando en "buffer"
-		  //Cuando el "sizeRecibido" es menor que el máximo el mensaje se ha
+		  //Cuando el "sizeRecvServ" es menor que el máximo el mensaje se ha
 		  //completado.
-		  buffer="";
-		  char* recibido2;
-		  sizeRecibido = MAX_BUFF_MSG;
-		  while (sizeRecibido != 0){
-			    recibido2 = (char*) malloc(MAX_BUFF_MSG);
-			    sizeRecibido = recv(socknuevo, recibido2, datos_size, 0);
+		  char* bufferRcv = (char*) malloc(1);
+			int sizeBufferRcv = 0;
+		  char* rcvServ;
+		  int sizeRcvServ = MAX_BUFF_MSG;
+			char* auxBufferRcv;
+			int sizeAuxBufferRcv = 0; 
+		  while (sizeRcvServ != 0){
+			    rcvServ = (char*) malloc(MAX_BUFF_MSG);
+			    sizeRcvServ = recv(socket_to_server, rcvServ, datos_size, 0);
 			    //envio mensaje al cliente
-			    if (sizeRecibido == -1){
+			    if (sizeRcvServ == -1){
 				      cout << "Error recv del server"; cout.flush();
-				      close(socknuevo);
+				      close(socket_to_server);
 				      close(socket_to_client);
 				      exit(-1);
 			    }
-			    cout << recibido; cout.flush();
-			    if (sizeRecibido == 0 ){
+			    cout << rcvServ; cout.flush();
+			    if (sizeRcvServ == 0 ){
 				      cout << "Termino de recibir, no mando nada"; cout.flush();
-				      close(socknuevo);
-				      close(socket_to_client);
+				      close(socket_to_server);
 				      //exit(-1);
 			    }else{
-				      if(send(socket_to_client,recibido2,sizeRecibido,0) == -1){
-						      cout << "Error send al fire"; cout.flush();
-						      close(socknuevo);
-						      close(socket_to_client);
-						      exit(-1);
-				      }
+				  		auxBufferRcv = (char*) malloc(sizeBufferRcv + sizeRcvServ);
+							memcpy(auxBufferRcv, bufferRcv, sizeBufferRcv);
+							memcpy(auxBufferRcv + sizeBufferRcv, rcvServ, sizeRcvServ);
+							sizeAuxBufferRcv = sizeBufferRcv + sizeRcvServ;
+							bufferRcv = (char*) malloc(sizeAuxBufferRcv);
+							memcpy(bufferRcv, auxBufferRcv, sizeAuxBufferRcv);
+							sizeBufferRcv = sizeAuxBufferRcv;
+							free(auxBufferRcv);
+							sizeAuxBufferRcv = 0;
 			    }
-			    free(recibido2); //libero memoria de recibido
-		  }//fin while sizeRecibido !=0
-		  close(socknuevo);
-		  //} //fin de conexion con el servidor host, siendo metodo y url validos
+			    free(rcvServ); //libero memoria de recibido
+		  }//fin while sizeRecvServ !=0
+
+			if(send(socket_to_client,bufferRcv,sizeBufferRcv,0) == -1){
+					cout << "Error send al fire"; cout.flush();
+					close(socket_to_server);
+					close(socket_to_client);
+					exit(-1);
+			}
+			free(bufferRcv);
 		  //cierro la conexion
 		  close (socket_to_client);
 		  
