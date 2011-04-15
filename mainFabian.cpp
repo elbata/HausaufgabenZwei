@@ -18,7 +18,8 @@
 #include <signal.h>
 #include <list>
 #include "operaciones.h"
-//#include "parser.h"
+#include "parser.h"
+
 
 #define miPuerto 61000
 #define MAX_BUFF_MSG 1024*1024
@@ -28,16 +29,79 @@
 #define MAX_QUEUE 30
 #define MAX_BUFF_MSG_ADM 100
 #define IPProxy  "127.0.0.1"
+using namespace std;
 
 //----------Estructura compartida------------//
 bool booldenyPOST;
 bool booldenyGET;
 
-using namespace std;
+list<string>  listaDW;
+list<string>  listaDUW;
+
 
 int server_socket;
 
+//--------------Semaforos--------------------//
+pthread_mutex_t mutexListDW = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutexListDUW = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutexdenyPOST = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutexdenyGET = PTHREAD_MUTEX_INITIALIZER;
 
+
+//funcion que comprueba si el m etodo es valido
+bool validMethod (char* m){
+  //retorna true si el metodo es valido
+  bool retorno = false;
+  char* resultSearch=strstr(m,"GET");
+  if(resultSearch!=NULL)
+  {
+      //verifico estado del booleano
+      pthread_mutex_lock( &mutexdenyGET );      
+      if (booldenyGET)
+	  retorno = false;
+      else
+	  retorno = true;      
+      pthread_mutex_unlock( &mutexdenyGET );
+      
+  }else{
+      resultSearch=strstr(m,"POST");
+      if (resultSearch!=NULL) {
+	//verifico estado del booleano
+	pthread_mutex_lock( &mutexdenyPOST );      
+	if (booldenyPOST)
+	  retorno = false;
+	else
+	  retorno = true;
+	pthread_mutex_unlock( &mutexdenyPOST );
+   }else{
+	resultSearch=strstr(m,"HEAD");
+	if (resultSearch!=NULL)
+	  retorno = true;
+	else
+	  retorno =false;
+      }    
+  }
+  return retorno;
+}
+
+
+//funcion que comprueba si el url es valido
+bool comprobarURL (char* url){
+  //devuelve true si la url  es valida
+  string urlStr (url);
+  bool encontrePalabra = false;
+  list<string>::iterator iter;
+  pthread_mutex_lock( &mutexListDUW );      
+  for(iter=listaDUW.begin(); ((iter!=listaDUW.end()) && (encontrePalabra == false)); iter++){
+	  if (urlStr.find((*iter),0) !=-1){
+	      encontrePalabra = true;
+	  }	  
+  }
+  pthread_mutex_unlock( &mutexListDUW );      
+  return (!encontrePalabra);
+}
+
+//codigo para manejar el ctrl-c
 void signal_callback_handler(int signum){
 	   cout<<"Caught signal %d\n";cout.flush();
 	   close(server_socket);
@@ -106,7 +170,6 @@ int main(int argc, char** argv) {
       //int socket_to_client = (*(int*)parametro);
       int sizeRecibido = MAX_BUFF_MSG;
       int datos_size = MAX_BUFF_MSG;
-      string buffer="";
       //Recibo el mensaje de a partes. El mensaje se va guardando en "buffer"
       char* recibido;
       //bool finCabezal = false;
@@ -128,14 +191,9 @@ int main(int argc, char** argv) {
 			    //libero memoria de recibido
 			      //free(recibido);
       //}
-      cout << "Soy el servidor proxy, me mandaste esta boludez:\n" << buffer; cout.flush();
-      buffer=recibido;
-      int comienzo = 0;
-      string metodoHTTP="";
-      string url="";
-      bool isHttp1= true;//http1Valid(recibido);
-      int finMetodo;
-      int finUrl;
+      //cout << "Soy el servidor proxy, me mandaste esta boludez:\n" << recibido; cout.flush();
+
+      
                       
       //Primer paso comprobarMetodo, no importa la url ni nada, en caso de error hay q cerrar la conexion y terminar la ejecucion (terminar la ejecucion solo cuando lo pasemosal otro archivo)
       //Segundo, si el metodo es valido se comprueba la url, si no es valida mandar mensaje de error al firefox, cerrar la conexoin y terminar la ejecucion (idem a lo de arriba con lo de terminar la ejecucion)
@@ -144,29 +202,34 @@ int main(int argc, char** argv) {
       
       //aca extraer lo necesario
       
-      
-      
-      bool metodoValido = true; //llamar funcion comprobarMetodo despues de obtenerlo
+      char* httpMethod= getHttpMethod(recibido);
+     
+      bool metodoValido = validMethod(httpMethod); //llamar funcion comprobarMetodo despues de obtenerlo
       //aca hacer el if de si es valido
       if (metodoValido){
-	
-	bool urlValida = true;//llamar a funcion comprobarUrl despues de obtenerla
+	char* url=getUrl(recibido);
+	char* headerLine1= (char*) malloc(1024);
+	headerLine1[0]='\0';
+	strcat(headerLine1,httpMethod);
+	strcat(headerLine1," ");
+	strcat(headerLine1,url);
+	strcat(headerLine1," ");
+	strcat(headerLine1,"HTTP/1.0\r\n");
+	cout << "headerLine1: " << headerLine1<<"\n"; cout.flush();
+	bool urlValida = comprobarURL(url);//llamar a funcion comprobarUrl despues de obtenerla
 	if (urlValida){
-	
-
-	    //obtengo el nombre del host para realizar una busqueda DNS del IP
-	    int posHost = buffer.find("Host: ",comienzo);
-	    int posFinHost = buffer.find("\r\n",posHost);
-	    string nombreHost;
-	    nombreHost = buffer.substr(posHost+6,(posFinHost)-(posHost+6));
-
-	    //aca elimino el user-agent del encabezado
-	    int posFinUserAgent = buffer.find("\r\n",posFinHost+1);
-	    buffer.erase(posFinUserAgent,buffer.length()-posFinUserAgent);
-
-	    buffer += "\r\n\r\n";
-
-	    cout << "Esto es lo que mando:\n" << buffer; cout.flush();
+	    	    //obtengo el nombre del host para realizar una busqueda DNS del IP
+	    char* hostName= getHostName(recibido);
+	    char* headerLine2= (char*)malloc(1024);
+	    headerLine2[0]='\0';
+	    strcat(headerLine2,"Host: ");
+	    strcat(headerLine2,hostName);
+	    strcat(headerLine2,"\r\n");
+	    strcat(headerLine1,headerLine2);
+	    char* userAgent=getUserAgent(recibido);
+	    strcat(headerLine1,userAgent);
+	    strcat(headerLine1,"\r\n\r\n");
+	    cout << "Esto es lo que mando:\n" << headerLine1; cout.flush();
 	    //aca tengo q conectarme con el servidor posta, recibir la pagina y reenviarsela al cliente
 	    struct sockaddr_in server_original;
 	    server_original.sin_family = AF_INET; //tipo de conexion
@@ -177,8 +240,7 @@ int main(int argc, char** argv) {
 	      cout << "Error socket_to_server"; cout.flush();
 	      exit(-1);
 	    }
-	    char* h = &nombreHost[0];
-	    struct hostent* host = gethostbyname(h);
+	    struct hostent* host = gethostbyname(hostName);
 	    
 	    //controlo que el servidor que busco existe
 	    if (host!=NULL){
@@ -188,14 +250,13 @@ int main(int argc, char** argv) {
 		  //modifico el mensaje para q sea del tipo HTTP 1.0
 
 		  //mando el mensaje nuevo
-		  char* mensaje = &buffer[0];
 		  if (connect(socket_to_server, (struct sockaddr*) &server_original, sizeof(struct sockaddr)) == -1){
 		    cout << "Error connect"; cout.flush();
 		    close(socket_to_server);
 		    close(socket_to_client);
 		    exit(-1);
 		  }
-		  if (send(socket_to_server,mensaje,strlen(mensaje),0) == -1){
+		  if (send(socket_to_server,headerLine1,strlen(headerLine1),0) == -1){
 		      cout << "Error send al server"; cout.flush();
 		      close(socket_to_server);
 		      close(socket_to_client);
