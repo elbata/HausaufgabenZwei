@@ -37,6 +37,16 @@ using namespace std;
 
 int server_socket;
 
+
+void signal_callback_handler(int signum){
+	   cout<<"Caught signal %d\n";cout.flush();
+	   close(server_socket);
+	   // Cleanup and close up stuff here
+	 
+	   // Terminate program
+	   exit(signum);
+}
+
 int main(int argc, char** argv) {
 
     booldenyPOST = false;
@@ -46,6 +56,7 @@ int main(int argc, char** argv) {
     cout.flush();
     //Creo un socket para la conexion con el cliente
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    signal(SIGINT, signal_callback_handler);
     if (server_socket==-1){
         cout << "Error al crear el socket"; cout.flush();
         exit(-1);
