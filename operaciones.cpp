@@ -41,6 +41,7 @@ string obtenerArgumento(string linea){
   if (posFin>0)
   {
     argumento= argumento.substr(0,posFin);
+	argumento+="\0";
   }
   return argumento;
 }
