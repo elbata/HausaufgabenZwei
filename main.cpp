@@ -35,7 +35,6 @@
 #define miIP  "127.0.0.1"
 
 #define puertoAdministrador 63000
-#define MAX_QUEUE 30
 #define MAX_BUFF_MSG_ADM 100
 #define IPProxy  "127.0.0.1"
 
@@ -69,26 +68,52 @@ void signal_callback_handler(int signum){
 	   exit(-1);
 }
 
+void addElementDW(string elem) {
+  if (!(binary_search(listaDW.begin(), listaDW.end(), elem))) {
+      listaDW.push_front(elem);
+  }else{
+      cout << "Ya existia " << elem; cout.flush();
+  } 
+}
+
+void addElementDUW(string elem) {
+  if (!(binary_search(listaDUW.begin(), listaDUW.end(), elem))) {
+      listaDUW.push_front(elem);
+    }else{
+      cout << "Ya existia " << elem; cout.flush();
+  } 
+}
+
 // Funcion que elimina el 'elem' de la lista listaDW
 void removeElementDW(string elem){
-  list<string>::iterator iter;
-  iter=listaDW.begin();
-  while((elem.compare(*iter)!=0))
-  {
-    iter++;
-  }
-  listaDW.erase(iter);
+  if (binary_search(listaDW.begin(), listaDW.end(), elem)) {
+      listaDW.remove(elem);
+  }else{
+      cout << "No se encontro " << elem; cout.flush();
+  }  
+// list<string>::iterator iter;
+//  iter=listaDW.begin();
+ // for(iter=listaDW.begin(); (iter!=listaDW.end()); iter++) {
+//	if (elem.compare(*iter)!=0) {
+//		listaDW.erase(iter);
+//	}
+//  }
 }
 
 // Funcion que elimina el 'elem' de la lista listaUDW
 void removeElementDUW(string elem){
-  list<string>::iterator iter;
-  iter=listaDUW.begin();
-  while((elem.compare(*iter)!=0))
-  {
-    iter++;
-  }
-  listaDUW.erase(iter);
+  if (binary_search(listaDUW.begin(), listaDUW.end(), elem)) {
+      listaDUW.remove(elem);
+  }else{
+      cout << "No se encontro " << elem; cout.flush();
+  } 
+
+//  list<string>::iterator iter;
+//  for(iter=listaDUW.begin(); (iter!=listaDUW.end()); iter++) {
+//	if (elem.compare(*iter)!=0) {
+//		listaDUW.erase(iter);
+//	}
+//}
 }
 
 //funcion que comprueba si el m etodo es valido
@@ -174,12 +199,12 @@ void * atender_varios_admins(void * param){
 		//recibo un pedazo del mensaje
 		sizeRecibidoAdmin = recv(socket_con_administrador, recibidoDelAdmin, datos_admin_size, 0);
                 if (sizeRecibidoAdmin == -1){
-                    cout<<"error recv del administrador\n";cout.flush();
-   		    cout<<"cerrando "<<socket_con_administrador;cout.flush();
+                    printf("error recv del administrador\n");
+   		    printf("cerrando %d ",socket_con_administrador);
                     if (close(socket_con_administrador)<0){
 			perror("ERROR cerrando socket:\n");			
 		    }
-		    cout<<"cerrado\n";cout.flush();
+		    printf("cerrado\n");
                     pthread_exit(NULL);
 
                 }
@@ -199,7 +224,7 @@ void * atender_varios_admins(void * param){
 	    terminoMensaje = false;
 
 	    //imprimo como prueba el mensajeAdmin
-	    cout<<"El mensaje que manda el administrador es:\n"<<mensajeAdmin;cout.flush();
+	    printf("El mensaje que manda el administrador es: %s \n",mensajeAdmin.c_str());
 
 	    //comando recibido
 	    string comand = mensajeAdmin.substr(0,10);//guardo en comand los primeros 10 caracteres del mensaje, creo q con eso alcanza para saber cual es, no hice la cuenta...
@@ -221,14 +246,14 @@ void * atender_varios_admins(void * param){
 		    mensajeADevolver = "Notificado el addDUW\r\n\0";
 		    palabra=obtenerArgumento(mensajeAdmin);
 		    pthread_mutex_lock( &mutexListDUW );
-		    listaDUW.push_front(palabra);
+		    addElementDUW(palabra);
 		    pthread_mutex_unlock( &mutexListDUW );
 		    break;
 	      case 2:
 		    mensajeADevolver = "Notificado el addDW\r\n\0";
 		    palabra=obtenerArgumento(mensajeAdmin);
 		    pthread_mutex_lock( &mutexListDW );
-		    listaDW.push_front(palabra);
+		    addElementDW(palabra);
 		    pthread_mutex_unlock( &mutexListDW );
 		    break;
 	      case 3:
@@ -297,17 +322,17 @@ void * atender_varios_admins(void * param){
 	    //Mando lo mismo que me llego para probar un poco si funcionan los comandos
 	    if (send(socket_con_administrador,mens,tamanioMensajeADevolver,MSG_NOSIGNAL) == -1){
                 writeLog("ADMINISTRADOR: Error al mandar mensaje al cliente administrador.");
-		cout<<"cerrando "<<socket_con_administrador;cout.flush();
+		printf("cerrando por error send de admin %d",socket_con_administrador);
                 if (close(socket_con_administrador) <0){
 			perror("ERROR cerrando socket\n");			
 		}
-		cout<<"cerrado\n";cout.flush();
+		printf("cerrado\n");
 		free(mens);
                 pthread_exit(NULL);
             }
 		free(mens);
 	}
-	cout<<"cerrando "<<socket_con_administrador;cout.flush();
+	printf("cerrando %d",socket_con_administrador);
 	if (close(socket_con_administrador)<0){
 		perror("ERROR cerrando socket\n");			
 	}
@@ -318,16 +343,17 @@ void * atender_varios_admins(void * param){
 void * atencion_administrador(void * inutil) {
 
     //todo esto tendria que estar en una funcion
-writeLog("ATENCION A ADMIN: Se inicia atencion a administrador.");
+    writeLog("ATENCION A ADMIN: Se inicia atencion a administrador.");
 
-    cout<<"Esta es la consola del administrador\n";
-    cout.flush();
+    printf("Esta es la consola del administrador\n");
+
 
     //Creo un socket para la conexion con el administrador
     socket_administrador = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket_administrador == -1){
+    if (socket_administrador <0){
+	printf("error al crear socket admin\n");
         writeLog("ATENCION A ADMIN: Error al crear socket con atencion de administrador.");
-        pthread_exit(NULL);
+        return (NULL);
     }
 
     //contendra la direccion IP y el numero de puerto local
@@ -339,55 +365,58 @@ writeLog("ATENCION A ADMIN: Se inicia atencion a administrador.");
 
     //primitiva BIND
     //socket, puntero a sockaddr_in, tamaño de sockaddr_in
-    if (bind (socket_administrador, (struct sockaddr*) & proxy_addr, proxy_addr_size) == -1){
+    if (bind (socket_administrador, (struct sockaddr*) & proxy_addr, proxy_addr_size) <0){
         writeLog("ATENCION A ADMIN: Error al realizar bind del socket con atencion de administrador.");
-	cout<<"cerrando "<<socket_administrador;cout.flush();
+	printf("cerrando por error bind admin %d",socket_administrador);
         if (close(socket_administrador)<0){
 		perror("ERROR cerrando socket\n");			
 	}
-	cout<<"cerrado\n";cout.flush();
-        pthread_exit(NULL);
+	printf("cerrado\n");
+        return (NULL);
     }
 
     //primitiva listen
-    if (listen (socket_administrador, MAX_QUEUE) == -1 ){
+    if (listen (socket_administrador, MAX_QUEUE) <0 ){
         writeLog("ATENCION A ADMIN: Error al realizar listen sobre el socket con atencion de administrador.");
-	cout<<"cerrando "<<socket_administrador;cout.flush();
+	printf("cerrando por error listen admin %d",socket_administrador);
         if (close(socket_administrador)<0){
 		perror("ERROR cerrando socket\n");				
 	}
-	cout<<"cerrado\n";cout.flush();
+	printf("cerrado\n");
         pthread_exit(NULL);
     }
 
-
-
+    int socket_con_administrador;
+    int adminCreate;
     while (true){
 
-	int socket_con_administrador;
+
 	struct sockaddr_in admin_addr;
         socklen_t admin_addr_size = sizeof admin_addr;
 
 
         //espero por conexion de clientes
         socket_con_administrador = accept(socket_administrador, (struct sockaddr*) & admin_addr,& admin_addr_size);
-        if (socket_con_administrador == -1){
+        if (socket_con_administrador <0){
           writeLog("ATENCION A ADMIN: Error al realizar accept sobre el socket con atencion de administrador.");
-	  close(socket_administrador);
-	  close(socket_con_administrador);
-          pthread_exit(NULL);
+	  printf ("error accept administrador\n");
         }
-	pthread_t hijo_admin;
-	int adminCreate;
-	if(adminCreate=pthread_create(&hijo_admin,NULL,atender_varios_admins,(void*)socket_con_administrador)==0)
-	{
-		writeLog("ATENCION A ADMIN: Se creo un hilo de administrador con exito");
-	}
-	else
-	{
-		writeLog("ATENCION A ADMIN: Error al crear un hilo de administrador con exito");
-	}
+        else{
+	  pthread_t hijo_admin;
+	  pthread_attr_t attr; 
 
+	  pthread_attr_init  (&attr); 
+
+	  pthread_attr_setdetachstate  (&attr,  PTHREAD_CREATE_DETACHED); 
+	  adminCreate=pthread_create(&hijo_admin,&attr,atender_varios_admins,(void*)socket_con_administrador);
+	  if (adminCreate <0){
+		  writeLog("ATENCION A ADMIN: Error al crear un hilo de administrador con exito");
+		  close(socket_con_administrador);
+	  }
+	  else{
+		  writeLog("ATENCION A ADMIN: Se creo un hilo de administrador con exito");
+	  }
+	}
     }
 
     close (socket_administrador);
@@ -409,7 +438,7 @@ void * atenderWeb(void * parametro){
 			//string aux1 (recibido);
       if (sizeRecibido == -1){
 	  writeLog("ATENCION WEB: Hubo error al recibir el encabezado por parte del cliente web.");
- 	  cout<<"cerrando por error recv cabezal de fire"<<socket_to_browser;cout.flush();
+ 	  printf("cerrando por error recv cabezal de fire %d",socket_to_browser);
 	  if (close(socket_to_browser)<0){
 		perror("ERROR cerrando socket:\n");				
 	  }
@@ -564,7 +593,7 @@ void * atenderWeb(void * parametro){
 		  //modifico el mensaje para q sea del tipo HTTP 1.0
 
 		  //mando el mensaje nuevo
-		  if (connect(socket_to_server, res->ai_addr, res->ai_addrlen) == -1){
+		  if (connect(socket_to_server, res->ai_addr, res->ai_addrlen) <0){
 		    writeLog("ATENCION WEB: Error al realizar connect con el servidor al que se le solicita el pedido.");
 		    if (close(socket_to_browser)<0){
 			perror("ERROR cerrando socket:\n");			
@@ -577,9 +606,10 @@ void * atenderWeb(void * parametro){
 		    free(header);
 		    pthread_exit(NULL);
 		  }
-		  //if (send(socket_to_server,header,sizeHeader,0) == -1){
-		  if (send(socket_to_server,header,sizeHeader,MSG_NOSIGNAL) == -1){
+
+		  if (send(socket_to_server,header,sizeHeader,MSG_NOSIGNAL) <0){
 		      writeLog("ATENCION WEB: Error al realizar send con el servidor al que se le solicita el pedido.");
+			printf("error al enviar al servidor web");
 		      if (close(socket_to_browser)<0){
 			perror("ERROR cerrando socket:\n");			
 		      }
@@ -607,7 +637,7 @@ void * atenderWeb(void * parametro){
 			    rcvServ = (char*) malloc(MAX_BUFF_MSG);
 			    sizeRcvServ = recv(socket_to_server, rcvServ, datos_size, 0);
 			    //envio mensaje al cliente
-			    if (sizeRcvServ == -1){
+			    if (sizeRcvServ <0){
 				      writeLog("ATENCION WEB: Error al realizar recv con el servidor al que se le solicita el pedido.");
 				      if (close(socket_to_server)<0){
 					perror("ERROR cerrando socket\n");			
@@ -621,11 +651,11 @@ void * atenderWeb(void * parametro){
 			//    cout << rcvServ; cout.flush();
 			    if (sizeRcvServ == 0 ){
 				      //cout << "Termino de recibir, no mando nada"; cout.flush();
-				      cout<<"cerrando socket,termine recibir servidor"<<socket_to_server;cout.flush();
+				      printf("cerrando socket,termine recibir servidor %d",socket_to_server);
 				      if (close(socket_to_server)<0){
 					perror("ERROR cerrando socket\n");			
 				      }
-					cout<<"cerrado\n";cout.flush();
+					printf("cerrado\n");
 				      //exit(-1);
 			    }else{
 				  auxBufferRcv = (char*) malloc(sizeBufferRcv + sizeRcvServ);
@@ -678,59 +708,72 @@ void * atenderWeb(void * parametro){
   pthread_mutex_unlock( &mutexListDW );
 
 //////////////////////////////////////////
-			int enviados = send(socket_to_browser,bufferRcv,sizeBufferRcv,MSG_NOSIGNAL);
-			if( enviados== -1){
+
+			int total = 0;
+			int bytesleft = sizeBufferRcv;
+			int n;
+			    while(total < sizeBufferRcv) {
+				n = send(socket_to_browser, bufferRcv + total, bytesleft, MSG_NOSIGNAL);
+				if (n <0) {
+				  close(socket_to_browser);				  
+				}
+				total += n;
+				bytesleft -= n;
+			    }
+			int enviados = total; 
+			if( enviados <0){
 				      writeLog("ATENCION WEB: Error al realizar send al cliente web.");
 				      //close(socket_to_server);
-					cout<<"cerrando error al enviar al fire"<<socket_to_browser;cout.flush();
+				      printf("cerrando error al enviar al fire %d\n",socket_to_browser);
 				      if (close(socket_to_browser)<0){
 					perror("ERROR cerrando socket\n");			
 				      }
-				      cout<<"cerrado\n"<<cout.flush();
+				      printf("cerrado\n");
 				      free(host);
 				      pthread_exit(NULL);
 			}	
 			      //cout<<"recibidos: "<<sizeBufferRcv;cout.flush();
-			      cout<<"enviados: "<<enviados;cout.flush();
+			      printf("enviados: %d\n",enviados);
 			free(bufferRcv);
-		  }
-		  //cierro la conexion
-cout<<"cerrando "<<socket_to_browser;cout.flush();
-		  if (close (socket_to_browser) < 0){
-			perror("ERROR cerrando socket:\n");			
-		}
-cout<<"cerrado, termine de enviar sin problemas\n"<<cout.flush();
-		  free(recibido);
-		  //free(host);
+				//cierro la conexion
+			printf("cerrando %d\n",socket_to_browser);
+			if (close (socket_to_browser) < 0){
+			      perror("ERROR cerrando socket:\n");			
+			}
+			printf("cerrado, termine de enviar sin problemas\n");
+			free(recibido);
+			//free(host);
 
-		  pthread_exit(NULL);
+			pthread_exit(NULL);
+		  }
+		
 
 	    }else{//fin if  servidor es valido
 		//cierro el socket con el firefox
 		//termino ejecucion, esto se hace cuando lo pasemos al otro archivo...
-		cout<<"cerrando por servidor invalio"<<socket_to_browser;cout.flush();
+		printf("cerrando por servidor invalido %d",socket_to_browser);
 		if (close(socket_to_browser)<0){
 			perror("ERROR cerrando socket\n");			
 		}
-		cout<<"cerrado\n"<<cout.flush();
+		printf("cerrado\n");
 		free(recibido);
 		free(header);
                 pthread_exit(NULL);
 	    }
 
 	}else{//fin if url valida
-	    cout<<"url invalido"<cout.flush();
+	    printf("url invalido");
 	    char * merror=strdup("HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n<html>\r\n<head>\r\n</head>\r\n<body>\r\n<h1>404 bloqueado por redes26,url invalida</h1>\r\n</body>\r\n</html>");	    
 	    int cant = send(socket_to_browser,merror,strlen(merror),MSG_NOSIGNAL);
 	    if (cant ==-1){
-		cout<<"fallo el send\n";cout.flush();
+		printf("fallo el send de url invalida\n");
 	    }
 	    free(merror);
-	    cout<<"cerrando por url invalida"<<socket_to_browser;cout.flush();
+	    printf("cerrando por url invalida %d",socket_to_browser);
             if (close(socket_to_browser)<0){
 		perror("ERROR cerrando socket\n");			
             }
-	    cout<<"cerrado\n"<<cout.flush();
+	    printf("cerrado\n");
 	    free(recibido);
 	    free(hostName);
             pthread_exit(NULL);
@@ -739,27 +782,27 @@ cout<<"cerrado, termine de enviar sin problemas\n"<<cout.flush();
 	  free(httpMethod);
 	  free(recibido);
 	  //crear mensaje de error, mandarlo y (cerrar la conexion)
-		cout<<"metodo invalido"<cout.flush();
+	  printf("metodo invalido\n");
 	  char * merror=strdup("HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n<html>\r\n<head>\r\n</head>\r\n<body>\r\n<h1>404 bloqueado por redes26,metodo invalido</h1>\r\n</body>\r\n</html>");	    
 	  int cant = send(socket_to_browser,merror,strlen(merror),MSG_NOSIGNAL);
 	  if (cant ==-1){
-	      cout<<"fallo el send\n";cout.flush();
+	      printf("fallo el send de metodo invalido\n");
 	  }
 	  free(merror);
-     	  cout<<"cerrando por metodo valido"<<socket_to_browser;cout.flush();
+     	  printf("cerrando por metodo valido %d\n",socket_to_browser);
 	  if (close(socket_to_browser) <0){
 		perror("ERROR cerrando socket:\n");			
 	  }
-	  cout.flush();cout<<"cerrado\n"<<cout.flush();
+	  printf("cerrado\n");
 	  pthread_exit(NULL);
       }//fin else metodoValido
 
-	      cout<<"estop no tendria q aparecer nunca\n";cout.flush();
-	cout<<"cerrando cualquier fruta"<<socket_to_browser;cout.flush();
+	  printf("estop no tendria q aparecer nunca\n");
+	  printf("cerrando cualquier fruta %d\n",socket_to_browser);
 	  if (close(socket_to_browser)<0){
 		perror("ERROR cerrando socket\n");			
 	  }
-	cout<<"cerrado frutasss\n"<<cout.flush();
+	  printf("cerrado frutasss\n");
 	  pthread_exit(NULL);
       
    
@@ -770,88 +813,94 @@ cout<<"cerrado, termine de enviar sin problemas\n"<<cout.flush();
  */
 int main() {
 
-    //writeLog("Se inicia el servidor proxy.");
-    signal(SIGINT, signal_callback_handler);
-    pthread_t ad;
-    int alpedo=2;
-    int resultPC;
-    if (resultPC=pthread_create(&ad,NULL,atencion_administrador,(void*)alpedo)==0)
-	{
-	writeLog("SERVIDOR PROXY: Thread del administrador creado con exito.");
+	//writeLog("Se inicia el servidor proxy.");
+	signal(SIGINT, signal_callback_handler);
+	pthread_t ad;
+	int alpedo=2;
+      
+
+	booldenyPOST=false;
+	booldenyGET=false;
+
+	cout<<"HOLA SOY EL SERVIDOR PROXY, VENGO A FLOTAR\n";
+	cout.flush();
+	//Creo un socket para la conexion con el cliente
+	server_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+
+
+	if (server_socket == -1){
+	    writeLog("SERVIDOR PROXY: Hubo error al crear el socket para la conexion con el cliente del servidor proxy");
+	    return (-1);
 	}
-    else
-	{
-	writeLog("SERVIDOR PROXY: Hubo error al crear el hilo del administrador, el numero de error es: " +resultPC);
-	        pthread_exit(NULL);
+
+	//contendra la direccion IP y el numero de puerto local
+	struct sockaddr_in server_addr;
+	socklen_t server_addr_size = sizeof server_addr;
+	server_addr.sin_family = AF_INET; //tipo de conexion
+	server_addr.sin_port = htons(miPuerto); //puerto por donde voy a atender
+	server_addr.sin_addr.s_addr = inet_addr(miIP); //direccion IP mia
+
+	//primitiva BIND
+	//socket, puntero a sockaddr_in, tamaño de sockaddr_in
+	if (bind (server_socket, (struct sockaddr*) & server_addr, server_addr_size) == -1){
+	    printf("error bind main\n");
+	    writeLog("SERVIDOR PROXY: Hubo error al realizar bind entre el socket y el descriptor, para la conexion con el cliente del servidor proxy");
+	    if (close(server_socket)<0){
+		    perror("ERROR por bind main cerrando socket:\n");				
+	    }
+	    return (-1);
 	}
 
-    booldenyPOST=false;
-    booldenyGET=false;
-
-    cout<<"HOLA SOY EL SERVIDOR PROXY, VENGO A FLOTAR\n";
-    cout.flush();
-    //Creo un socket para la conexion con el cliente
-    server_socket = socket(AF_INET, SOCK_STREAM, 0);
-
-
-
-    if (server_socket == -1){
-        writeLog("SERVIDOR PROXY: Hubo error al crear el socket para la conexion con el cliente del servidor proxy");
-        pthread_exit(NULL);
-    }
-
-    //contendra la direccion IP y el numero de puerto local
-    struct sockaddr_in server_addr;
-    socklen_t server_addr_size = sizeof server_addr;
-    server_addr.sin_family = AF_INET; //tipo de conexion
-    server_addr.sin_port = htons(miPuerto); //puerto por donde voy a atender
-    server_addr.sin_addr.s_addr = inet_addr(miIP); //direccion IP mia
-
-    //primitiva BIND
-    //socket, puntero a sockaddr_in, tamaño de sockaddr_in
-    if (bind (server_socket, (struct sockaddr*) & server_addr, server_addr_size) == -1){
-        writeLog("SERVIDOR PROXY: Hubo error al realizar bind entre el socket y el descriptor, para la conexion con el cliente del servidor proxy");
-        if (close(server_socket)<0){
-		perror("ERROR cerrando socket:\n");				
+	//primitiva listen
+	if (listen (server_socket, MAX_QUEUE) == -1){
+	    writeLog("SERVIDOR PROXY: Hubo error al realizar la escucha sobre el socket para la conexion con el cliente del servidor proxy.");
+	    printf("cerrando por error listen main %d\n",server_socket);
+	    if (close(server_socket)<0){
+		    perror("ERROR cerrando socket:\n");			
+	    }
+	    printf("cerrado\n");
+	    return (-1);
 	}
-        pthread_exit(NULL);
-    }
-
-    //primitiva listen
-    if (listen (server_socket, MAX_QUEUE) == -1){
-        writeLog("SERVIDOR PROXY: Hubo error al realizar la escucha sobre el socket para la conexion con el cliente del servidor proxy.");
-	cout<<"cerrando por listen main"<<server_socket;cout.flush();
-        if (close(server_socket)<0){
-		perror("ERROR cerrando socket:\n");			
+	int resultPC;
+        resultPC=pthread_create(&ad,NULL,atencion_administrador,(void*)alpedo);
+	if (resultPC<0){
+		writeLog("SERVIDOR PROXY: Hubo error al crear el hilo del administrador, el numero de error es: " +resultPC);
+	        return (-1);
 	}
-	cout<<"cerrado\n";cout.flush();
-        pthread_exit(NULL);
-    }
 
-    while (true){
-        // inicializo estructuras para primitiva ACCEPT
-
-        //Contendra la direccion IP y numero de puerto del cliente
-        struct sockaddr_in client_addr;
-        socklen_t client_addr_size = sizeof client_addr;
         int socket_to_client;
+	while (true){
+	  // inicializo estructuras para primitiva ACCEPT
 
-        //espero por conexion de clientes
-        socket_to_client = accept(server_socket, (struct sockaddr*) & client_addr,& client_addr_size);
-        if (socket_to_client == -1){
-          writeLog("SERVIDOR PROXY: Hubo error al realizar accept con el socket de clientes.");
-          pthread_exit(NULL);
-        }
+	  //Contendra la direccion IP y numero de puerto del cliente
+	  struct sockaddr_in client_addr;
+	  socklen_t client_addr_size = sizeof client_addr;
 
-	pthread_t hijo;
 
-	pthread_create(&hijo,NULL,atenderWeb,(void*)socket_to_client);
+	  //espero por conexion de clientes
+	  socket_to_client = accept(server_socket, (struct sockaddr*) & client_addr,& client_addr_size);
+	  if (socket_to_client <0){
+	    writeLog("SERVIDOR PROXY: Hubo error al realizar accept con el socket de clientes.");
+	    printf("error accept web\n");		
+	  }else{
+	  
+	  pthread_t hijo;
+	  pthread_attr_t attr; 
 
-    }
-	cout<<"cerrando hola"<<server_socket;cout.flush();
+	  pthread_attr_init  (&attr); 
+
+	  pthread_attr_setdetachstate  (&attr,  PTHREAD_CREATE_DETACHED); 
+	  if (pthread_create(&hijo,&attr,atenderWeb,(void*)socket_to_client) <0){
+	    close(socket_to_client);
+	  }
+		}
+
+	}	
+	cout<<"cerrando mal"<<server_socket;cout.flush();
     	if (close (server_socket)<0){
 		perror("ERROR cerrando socket:\n");			
 	}
-	cout<<"cerrado chau\n";cout.flush();
+	printf("cerrado chau\n");
 }
 
