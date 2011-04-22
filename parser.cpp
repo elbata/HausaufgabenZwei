@@ -7,10 +7,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
-  #include <iostream>
-  
-  using namespace std;
-  
+#include <iostream>
+
+using namespace std;
+
   bool http1Valid(char* entrada){
     char* result= strstr (entrada,"HTTP/1.1");
     if (result!=NULL){
@@ -19,7 +19,7 @@
 	return false;
     }
   }
-  
+
   char* getHttpMethod(char* httpCode){
     char* auxHttpMethod = (char*) malloc(1024);
     int httpResult = sscanf(httpCode,"%s %*s %*s",auxHttpMethod);
@@ -32,8 +32,15 @@
   
   char* getUrl(char* httpCode){
       
+      
+      int inicio;
+      int fin;
+      string s(httpCode);
+      inicio = s.find(" ");
+      fin = s.find(" HTTP/");
+      
       char* url;
-      char* auxUrl = (char*) malloc(1024);
+      char* auxUrl = (char*) malloc(fin - inicio);
       char* auxUrlBorrar = auxUrl;
       int httpResult = sscanf(httpCode,"%*s %s %*s",auxUrl);
       char* tieneHttp = strstr(auxUrl,"http");
@@ -52,7 +59,16 @@
   }
         
   char* getHostName(char* httpCode){
-    char* auxHostName = (char*) malloc(1024);
+
+    int inicio;
+    int fin;
+    string s(httpCode);
+    inicio = s.find("Host:");
+    inicio = s.find(" ", inicio);
+    fin = s.find("\r\n", inicio);
+	  
+	  
+    char* auxHostName = (char*) malloc(fin - inicio);
     char* hostName;
     char* tieneHost = strstr(httpCode,"Host:");
     if(tieneHost != NULL)
@@ -78,4 +94,4 @@
     memcpy(userAgent + strlen(auxUserAgent), "\0", 1);
     return userAgent;
   }
-  
+

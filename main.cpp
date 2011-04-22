@@ -28,15 +28,18 @@
 #include "operaciones.h"
 #include "parser.h"
 #include "log.h"
+#include "data.h"
+#include <algorithm>
+#include <functional>
 
-#define miPuerto 62000
+//#define miPuerto 62000
 #define MAX_QUEUE 30
 #define MAX_BUFF_MSG 1024*1024
-#define miIP  "127.0.0.1"
+//#define miIP  "127.0.0.1"
 
-#define puertoAdministrador 63000
+//#define puertoAdministrador 63000
 #define MAX_BUFF_MSG_ADM 100
-#define IPProxy  "127.0.0.1"
+//#define IPProxy  "127.0.0.1"
 
 using namespace std;
 
@@ -46,6 +49,12 @@ bool booldenyGET;
 
 list<string>  listaDW;
 list<string>  listaDUW;
+
+int miPuerto;
+char* miIP;
+int puertoAdministrador;
+char* IPProxy;
+
 
 //--------------Semaforos--------------------//
 pthread_mutex_t mutexListDW   = PTHREAD_MUTEX_INITIALIZER;
@@ -811,7 +820,22 @@ void * atenderWeb(void * parametro){
 /*
  *
  */
-int main() {
+int main(int argc, char *argv[] ) {
+
+	if (argc==3)
+	{
+		setServerIp(argv[1]);
+		setServerPort(argv[2]);
+	}
+	else if (argc==2)
+	{
+		setServerIp(argv[1]);
+	}
+
+	miPuerto=getServerPort();
+	miIP=getServerIp();
+	puertoAdministrador=getAdminPort();
+	IPProxy=getAdminIp();
 
 	//writeLog("Se inicia el servidor proxy.");
 	signal(SIGINT, signal_callback_handler);
