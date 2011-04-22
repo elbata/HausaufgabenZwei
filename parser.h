@@ -21,4 +21,5 @@ char* getHttpMethod(char*);
 char* getUrl(char*);
 char* getHostName(char*);
 char* getUserAgent(char*);
+char* getHeadersRestantes(char*,int&);
 #endif

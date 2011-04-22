@@ -94,4 +94,76 @@ using namespace std;
     memcpy(userAgent + strlen(auxUserAgent), "\0", 1);
     return userAgent;
   }
+  
+  char* getHeadersRestantes(char* httpCode, int &size){
 
+    string headers[14];
+    headers[0] = "Allow";
+    headers[1] = "Authorization";
+    headers[2] = "Content-Legth";
+    headers[3] = "Content-Type";
+    headers[4] = "Date";
+    headers[5] = "Expires";
+    headers[6] = "From";
+    headers[7] = "If-Modified-Since";
+    headers[8] = "Last-Modified";
+    headers[9] = "Location";
+    headers[10] = "Pragma";
+    headers[11] = "Referer";
+    headers[12] = "Server";
+    headers[13] = "WWW-Authenticate";
+    
+    string s(httpCode);
+    
+    
+    printf("ADENTRO ME LLEGA ESTOOOOOO STRINGGGGG: %s",s.c_str());
+    printf("ADENTRO ME LLEGA ESTOOOOOO CHAR*****: %s",httpCode);
+    
+    char* headersRestantes = NULL;
+    int sizeHeadersRestantes = 0;
+    char* auxHeadersRestantes;
+    int sizeAuxHeadersRestantes = 0;
+    int inicio;
+    int fin;
+    int i;
+
+    for(i = 0; i <= 13; i++) {
+
+      inicio = s.find(headers[i]);
+      if (inicio != -1) {
+	printf("%s",(headers[i]).c_str());
+        fin = s.find("\r\n", inicio);
+	cout << "Inicio: " << inicio << "\n"; cout.flush();
+        cout << "Fin: " << fin << "\n" ; cout.flush();
+        auxHeadersRestantes = (char*) malloc(sizeHeadersRestantes + (fin - inicio) + 2);
+	cout << "1"; cout.flush();
+        memcpy(auxHeadersRestantes, headersRestantes, sizeHeadersRestantes); 
+	cout << "2"; cout.flush();
+	memcpy(auxHeadersRestantes + sizeHeadersRestantes, httpCode + inicio, (fin - inicio));
+	cout << "3"; cout.flush();
+	memcpy(auxHeadersRestantes + sizeHeadersRestantes + (fin - inicio), "\r\n", 2);
+	cout << "4"; cout.flush();
+	sizeAuxHeadersRestantes = sizeHeadersRestantes + (fin - inicio) + 2;
+	cout << "5"; cout.flush();
+	
+	if (headersRestantes != NULL) { free(headersRestantes); }
+	cout << "6"; cout.flush();
+        headersRestantes = (char*) malloc(sizeAuxHeadersRestantes);
+	cout << "7"; cout.flush();
+        memcpy(headersRestantes, auxHeadersRestantes, sizeAuxHeadersRestantes);
+	cout << "8"; cout.flush();
+        sizeHeadersRestantes = sizeAuxHeadersRestantes;
+	cout << "9"; cout.flush();
+	 
+        free(auxHeadersRestantes);
+      }else{
+	      cout << "Inicio MENOS UNO: " << inicio << "\n"; cout.flush();
+      }
+    }
+    size = sizeHeadersRestantes;
+    return headersRestantes;
+  }
+
+//GET http://www.fing.edu.uy/system/application/images/pie_inf.jpg HTTP/1.1
+//Host: www.fing.edu.uy
+//User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1.14) Gecko/20080404 Firefox/2.0.0.14

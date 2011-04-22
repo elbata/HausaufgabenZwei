@@ -34,7 +34,7 @@
 
 //#define miPuerto 62000
 #define MAX_QUEUE 30
-#define MAX_BUFF_MSG 1024*1024
+#define MAX_BUFF_MSG 4096
 //#define miIP  "127.0.0.1"
 
 //#define puertoAdministrador 63000
@@ -441,11 +441,46 @@ void * atenderWeb(void * parametro){
       int datos_size = MAX_BUFF_MSG;
       //Recibo el mensaje de a partes. El mensaje se va guardando en "buffer"
       char* recibido;
-      recibido = (char*) malloc(MAX_BUFF_MSG);
+      char* auxRecibidoFinal;
+      int sizeAuxRecibidoFinal = 0;
+      char* recibidoFinal;
+      int sizeRecibidoFinal = 0;
+      bool termine = false;
+//      while (!termine){
+        recibido = (char*) malloc(MAX_BUFF_MSG);
 			//recibo un pedazo del mensaje
-      sizeRecibido = recv(socket_to_browser, recibido, datos_size, 0);
+        sizeRecibido = recv(socket_to_browser, recibido, datos_size, 0);
 			//string aux1 (recibido);
-      if (sizeRecibido == -1){
+	recibidoFinal = (char*) malloc(sizeRecibido + 1);
+	memcpy(recibidoFinal, recibido, sizeRecibido);
+	memcpy(recibidoFinal + sizeRecibido, "\0", 1);
+	
+	printf("GUILEEEEEEEEEEEEEEEEEEEEEEEee %s", recibidoFinal);
+  //      if (sizeRecibido > 0) { 
+		//cout<< "HAAAAAAAAAAAAAAAAAAA"; cout.flush();
+		//cout<< strlen(recibidoFinal); cout.flush();
+		//cout<< "HAAAAAAAAAAAAAAAAAAA"; cout.flush();
+//	  auxRecibidoFinal = (char*) malloc(sizeRecibidoFinal + strlen(recibido));
+//	  memcpy(auxRecibidoFinal, recibidoFinal, sizeRecibidoFinal);
+//	  memcpy(auxRecibidoFinal + sizeRecibidoFinal, recibido, strlen(recibido));
+//	  sizeAuxRecibidoFinal = sizeRecibidoFinal + strlen(recibido);
+	  
+//	  if (recibidoFinal != NULL) { free(recibidoFinal); }
+//	  recibidoFinal = (char*) malloc(sizeAuxRecibidoFinal);
+//	  memcpy(recibidoFinal, auxRecibidoFinal, sizeAuxRecibidoFinal);
+//	  sizeRecibidoFinal = sizeAuxRecibidoFinal;
+			
+//	  free(auxRecibidoFinal);
+
+  //        char* salto = strstr(recibidoFinal,"\r\n\r\n");
+  //        if (salto != NULL){
+ //           termine =true;
+  //        }
+//	}else{
+//	  termine = true;
+//	}      
+  //    }
+      if (sizeRecibido <= 0){
 	  writeLog("ATENCION WEB: Hubo error al recibir el encabezado por parte del cliente web.");
  	  printf("cerrando por error recv cabezal de fire %d",socket_to_browser);
 	  if (close(socket_to_browser)<0){
@@ -536,10 +571,10 @@ void * atenderWeb(void * parametro){
 	    
 	    char* userAgent=getUserAgent(recibido);
 	    
-	    int sizeHL3 = strlen(userAgent) + 4;
+	    int sizeHL3 = strlen(userAgent) + 2;
 	    char* hL3 = (char*) malloc(sizeHL3); //headerLine3
 	    memcpy(hL3, userAgent, strlen(userAgent));
-	    memcpy(hL3 + strlen(userAgent), "\r\n\r\n", 4); 
+	    memcpy(hL3 + strlen(userAgent), "\r\n", 2); 
 	    
 	    free(userAgent);
 	    
@@ -548,22 +583,41 @@ void * atenderWeb(void * parametro){
 	    
 	    sizeAL = 0;
 	    
-	    aL = (char*) malloc(sizeHL1 + sizeHL2 + sizeHL3);
-	    memcpy(aL, hL1, sizeHL1);
-	    memcpy(aL + sizeHL1, hL2, sizeHL2);
-	    memcpy(aL + sizeHL1 + sizeHL2, hL3, sizeHL3);
-	    sizeAL = sizeHL1 + sizeHL2 + sizeHL3;
+	    printf("ANTES DE RESTANTES HEADERS%s\n",recibidoFinal);
 	    
+	    int sizeHeadersRestantes = 0;
+	    char* headersRestantes = getHeadersRestantes(recibidoFinal,sizeHeadersRestantes);
+	    printf("LARGOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOo%d\n",sizeHeadersRestantes);
+	    printf("3\n");
+	    aL = (char*) malloc(sizeHL1 + sizeHL2 + sizeHL3 + sizeHeadersRestantes + 2);
+	    printf("3\n");
+	    memcpy(aL, hL1, sizeHL1);
+	    printf("3\n");
+	    memcpy(aL + sizeHL1, hL2, sizeHL2);
+	    printf("3\n");
+	    memcpy(aL + sizeHL1 + sizeHL2, hL3, sizeHL3);
+	    printf("3\n");
+	    memcpy(aL + sizeHL1 + sizeHL2 + sizeHL3, headersRestantes, sizeHeadersRestantes);
+	    printf("3\n");
+	    memcpy(aL + sizeHL1 + sizeHL2 + sizeHL3 + sizeHeadersRestantes, "\r\n", 2);
+	    printf("3\n");
+	    sizeAL = sizeHL1 + sizeHL2 + sizeHL3 + sizeHeadersRestantes + 2;
+	    printf("3\n");
 	    int sizeHeader = sizeAL;
 	    char* header = (char*) malloc(sizeHeader);
 	    memcpy(header, aL, sizeAL);
+	    
+	    
+	    printf("RECIBIDO FINAL%s\n",recibidoFinal);
+	    printf("HEADERS RESTANTES%s\n",headersRestantes);
+	    printf("TODO JUNTO%s\n",header);
 	    
 	    free(aL);
 	    free(hL1);
 	    free(hL2);
 	    free(hL3);
 	    //free(recibido);
-
+	    
 	    //cout << "Esto es lo que mando:\n" << header; cout.flush();
 
 	    //aca tengo q conectarme con el servidor posta, recibir la pagina y reenviarsela al cliente
