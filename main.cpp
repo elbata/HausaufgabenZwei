@@ -184,7 +184,7 @@ void * atender_varios_admins(void * param){
   	//int socket_con_administrador = (int)param;
 	//para fedora
 	intptr_t socket_con_administrador = (intptr_t)param;
-	
+	writeLog("ADMINISTRADOR: se creo el hilo de atencion para el administrador con exito.");
 	
 	//variables para leer comandos del administrador
         int sizeRecibidoAdmin = MAX_BUFF_MSG_ADM;
@@ -210,6 +210,7 @@ void * atender_varios_admins(void * param){
                 if (sizeRecibidoAdmin == -1){
                     printf("error recv del administrador\n");
    		    printf("cerrando %d ",socket_con_administrador);
+		    writeLog("ADMINISTRADOR: error al recibir del administrador.");
                     if (close(socket_con_administrador)<0){
 			perror("ERROR cerrando socket:\n");			
 		    }
@@ -322,7 +323,7 @@ void * atender_varios_admins(void * param){
 		    quitAdministrador = true;
 		    break;
 	      case 12:
-		    mensajeADevolver = "Boludo, ingresaste cualquier cosa\r\n\0";
+		    mensajeADevolver = "Comando invalido\r\n\0";
 		    break;
 	    }
 	    char * mens = (char*)malloc(mensajeADevolver.size()+1);
@@ -339,6 +340,7 @@ void * atender_varios_admins(void * param){
 		free(mens);
                 pthread_exit(NULL);
             }
+	    writeLog("ADMINISTRADOR: mensaje enviado con exito al administrador.");
 		free(mens);
 	}
 	printf("cerrando %d",socket_con_administrador);
@@ -354,7 +356,6 @@ void * atencion_administrador(void * inutil) {
     //todo esto tendria que estar en una funcion
     writeLog("ATENCION A ADMIN: Se inicia atencion a administrador.");
 
-    printf("Esta es la consola del administrador\n");
 
 
     //Creo un socket para la conexion con el administrador
@@ -422,9 +423,7 @@ void * atencion_administrador(void * inutil) {
 		  writeLog("ATENCION A ADMIN: Error al crear un hilo de administrador con exito");
 		  close(socket_con_administrador);
 	  }
-	  else{
-		  writeLog("ATENCION A ADMIN: Se creo un hilo de administrador con exito");
-	  }
+
 	}
     }
 
@@ -436,6 +435,7 @@ void * atenderWeb(void * parametro){
       //para maquina virtual
       //int socket_to_browser = (int)parametro;
       //para fedora
+      writeLog("ATENCION WEB: se creo el hilo de atencion para el cliente web con exito.");
       intptr_t socket_to_browser = (intptr_t)parametro;
       int sizeRecibido = MAX_BUFF_MSG;
       int datos_size = MAX_BUFF_MSG;
@@ -454,7 +454,7 @@ void * atenderWeb(void * parametro){
 	recibidoFinal = (char*) malloc(sizeRecibido + 1);
 	memcpy(recibidoFinal, recibido, sizeRecibido);
 	memcpy(recibidoFinal + sizeRecibido, "\0", 1);
-	
+
 	printf("GUILEEEEEEEEEEEEEEEEEEEEEEEee %s", recibidoFinal);
   //      if (sizeRecibido > 0) { 
 		//cout<< "HAAAAAAAAAAAAAAAAAAA"; cout.flush();
@@ -489,14 +489,13 @@ void * atenderWeb(void * parametro){
 	  cout<<"cerrado\n";cout.flush();
 	  pthread_exit(NULL);
       }
-	else{writeLog("Se recibio el encabezado por parte del cliente web con exito. El numero de hilo de la atencion a ese cliente es:"+ socket_to_browser);}
-	//cout << "recibido: " << recibido; cout.flush();
+	else{writeLog("Se recibio el encabezado por parte del cliente web con exito.");}
+
       char* httpMethod = getHttpMethod(recibido);
-	
-	//cout<<"socket: "<<socket_to_browser<<"\n";
+
 
       bool metodoValido = validMethod(httpMethod); //llamar funcion comprobarMetodo despues de obtenerlo
-      //aca hacer el if de si es valido
+
       if (metodoValido){
 	
 	//////////HEADER LINE 1
@@ -539,7 +538,8 @@ void * atenderWeb(void * parametro){
 	
 	
 	bool urlValida = comprobarURL(url) && comprobarURL(hostName);//llamar a funcion comprobarUrl despues de obtenerla
-	//cout<<url;cout.flush();
+
+	printf("\nurl: %s\n",url);
 	free(url);
 	if (urlValida){  
 	    writeLog("ATENCION WEB: La url del cliente web es valida.");
@@ -583,34 +583,50 @@ void * atenderWeb(void * parametro){
 	    
 	    sizeAL = 0;
 	    
-	    printf("ANTES DE RESTANTES HEADERS%s\n",recibidoFinal);
+	    //printf("ANTES DE RESTANTES HEADERS%s\n",recibidoFinal);
 	    
 	    int sizeHeadersRestantes = 0;
 	    char* headersRestantes = getHeadersRestantes(recibidoFinal,sizeHeadersRestantes);
-	    printf("LARGOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOo%d\n",sizeHeadersRestantes);
-	    printf("3\n");
+	    //printf("LARGOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOo%d\n",sizeHeadersRestantes);
+	    //printf("3\n");
 	    aL = (char*) malloc(sizeHL1 + sizeHL2 + sizeHL3 + sizeHeadersRestantes + 2);
-	    printf("3\n");
+	    //printf("3\n");
 	    memcpy(aL, hL1, sizeHL1);
-	    printf("3\n");
+	    //printf("3\n");
 	    memcpy(aL + sizeHL1, hL2, sizeHL2);
-	    printf("3\n");
+	    //printf("3\n");
 	    memcpy(aL + sizeHL1 + sizeHL2, hL3, sizeHL3);
-	    printf("3\n");
+	    //printf("3\n");
 	    memcpy(aL + sizeHL1 + sizeHL2 + sizeHL3, headersRestantes, sizeHeadersRestantes);
-	    printf("3\n");
+	    //printf("3\n");
 	    memcpy(aL + sizeHL1 + sizeHL2 + sizeHL3 + sizeHeadersRestantes, "\r\n", 2);
-	    printf("3\n");
+	    //printf("3\n");
 	    sizeAL = sizeHL1 + sizeHL2 + sizeHL3 + sizeHeadersRestantes + 2;
-	    printf("3\n");
-	    int sizeHeader = sizeAL;
-	    char* header = (char*) malloc(sizeHeader);
-	    memcpy(header, aL, sizeAL);
+	    //printf("3\n");
+
+            int sizeHeader;
+	    char* header;
+
+            if (esPost(recibido)) {
+              int sizeBody = 0;
+	      char* body = getPostBody(recibidoFinal,sizeRecibido,sizeBody);
+              sizeHeader = sizeAL + sizeBody + 1;
+	      header = (char*) malloc(sizeHeader);
+	      memcpy(header, aL, sizeAL);
+              memcpy(header + sizeAL, body, sizeBody);
+	      memcpy(header + sizeAL + sizeBody, "\0", 1);
+            }else{
+              sizeHeader = sizeAL + 1;
+	      header = (char*) malloc(sizeHeader);
+	      memcpy(header, aL, sizeAL);
+	      memcpy(header + sizeAL, "\0", 1);
+            }
+
 	    
-	    
-	    printf("RECIBIDO FINAL%s\n",recibidoFinal);
-	    printf("HEADERS RESTANTES%s\n",headersRestantes);
+	    //printf("RECIBIDO FINAL%s\n",recibidoFinal);
+	    //printf("HEADERS RESTANTES%s\n",headersRestantes);
 	    printf("TODO JUNTO%s\n",header);
+
 	    
 	    free(aL);
 	    free(hL1);
@@ -618,7 +634,13 @@ void * atenderWeb(void * parametro){
 	    free(hL3);
 	    //free(recibido);
 	    
-	    //cout << "Esto es lo que mando:\n" << header; cout.flush();
+/////////////////////////////////////////////////////////////////////
+char* posDobleSalto = strstr(recibidoFinal,"\r\n\r\n");
+
+//printf("\nRECIBIDO:\n%s\n",recibido);
+printf("\nposRecibidoFinal %d\n",recibidoFinal);
+printf("\nposDobleSaltoDeLinea %d\n",posDobleSalto);
+/////////////////////////////////////////////////////////////////////
 
 	    //aca tengo q conectarme con el servidor posta, recibir la pagina y reenviarsela al cliente
 	    struct sockaddr_in server_original;
@@ -628,14 +650,12 @@ void * atenderWeb(void * parametro){
 
 	    struct hostent* host = gethostbyname(hostName);
 	    
-	    //free(hostName);
 
 	    //controlo que el servidor que busco existe
 	    if (host!=NULL){
                   int socket_to_server = socket(AF_INET, SOCK_STREAM, 0);
                   if (socket_to_server == -1){
                     writeLog("ATENCION WEB: Error al crear socket con el servidor al que se le mandara el pedido.");
-			//free(//host);
 		    free(header);
 		    free(hostName);
                     pthread_exit(NULL);
@@ -679,7 +699,6 @@ void * atenderWeb(void * parametro){
 		      if (close(socket_to_server)<0){
 			perror("ERROR cerrando socket\n");			
 		      }
-		//	free(host);
 		      free(header);
 		      free(hostName);
 		      pthread_exit(NULL);
@@ -708,18 +727,17 @@ void * atenderWeb(void * parametro){
 				      if (close(socket_to_browser)<0){
 					perror("ERROR cerrando socket:\n");			
 				      }
-					//free(host);
 				      pthread_exit(NULL);
 			    }
-			//    cout << rcvServ; cout.flush();
+
 			    if (sizeRcvServ == 0 ){
-				      //cout << "Termino de recibir, no mando nada"; cout.flush();
+
 				      printf("cerrando socket,termine recibir servidor %d",socket_to_server);
 				      if (close(socket_to_server)<0){
 					perror("ERROR cerrando socket\n");			
 				      }
 					printf("cerrado\n");
-				      //exit(-1);
+
 			    }else{
 				  auxBufferRcv = (char*) malloc(sizeBufferRcv + sizeRcvServ);
 				  memcpy(auxBufferRcv, bufferRcv, sizeBufferRcv);
@@ -786,7 +804,7 @@ void * atenderWeb(void * parametro){
 			int enviados = total; 
 			if( enviados <0){
 				      writeLog("ATENCION WEB: Error al realizar send al cliente web.");
-				      //close(socket_to_server);
+
 				      printf("cerrando error al enviar al fire %d\n",socket_to_browser);
 				      if (close(socket_to_browser)<0){
 					perror("ERROR cerrando socket\n");			
@@ -795,17 +813,15 @@ void * atenderWeb(void * parametro){
 				      free(host);
 				      pthread_exit(NULL);
 			}	
-			      //cout<<"recibidos: "<<sizeBufferRcv;cout.flush();
+			      cout<<"recibidos: "<<sizeBufferRcv;cout.flush();
 			      printf("enviados: %d\n",enviados);
 			free(bufferRcv);
-				//cierro la conexion
-			printf("cerrando %d\n",socket_to_browser);
+
 			if (close (socket_to_browser) < 0){
 			      perror("ERROR cerrando socket:\n");			
 			}
-			printf("cerrado, termine de enviar sin problemas\n");
+
 			free(recibido);
-			//free(host);
 
 			pthread_exit(NULL);
 		  }
@@ -814,29 +830,28 @@ void * atenderWeb(void * parametro){
 	    }else{//fin if  servidor es valido
 		//cierro el socket con el firefox
 		//termino ejecucion, esto se hace cuando lo pasemos al otro archivo...
-		printf("cerrando por servidor invalido %d",socket_to_browser);
+		writeLog("ATENCION WEB: el servidor es invalido.");
+		printf("servidor invalido\n");
 		if (close(socket_to_browser)<0){
 			perror("ERROR cerrando socket\n");			
 		}
-		printf("cerrado\n");
 		free(recibido);
 		free(header);
                 pthread_exit(NULL);
 	    }
 
 	}else{//fin if url valida
-	    printf("url invalido");
+	    printf("url invalido\n");
+	    writeLog("ATENCION WEB: la url es invalida.");
 	    char * merror=strdup("HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n<html>\r\n<head>\r\n</head>\r\n<body>\r\n<h1>404 bloqueado por redes26,url invalida</h1>\r\n</body>\r\n</html>");	    
 	    int cant = send(socket_to_browser,merror,strlen(merror),MSG_NOSIGNAL);
 	    if (cant ==-1){
 		printf("fallo el send de url invalida\n");
 	    }
-	    free(merror);
-	    printf("cerrando por url invalida %d",socket_to_browser);
+	    free(merror);	    
             if (close(socket_to_browser)<0){
 		perror("ERROR cerrando socket\n");			
             }
-	    printf("cerrado\n");
 	    free(recibido);
 	    free(hostName);
             pthread_exit(NULL);
@@ -846,17 +861,16 @@ void * atenderWeb(void * parametro){
 	  free(recibido);
 	  //crear mensaje de error, mandarlo y (cerrar la conexion)
 	  printf("metodo invalido\n");
+	  writeLog("ATENCION WEB: el metodo es invalido.");
 	  char * merror=strdup("HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\nContent-Type: text/html\r\n\r\n<html>\r\n<head>\r\n</head>\r\n<body>\r\n<h1>404 bloqueado por redes26,metodo invalido</h1>\r\n</body>\r\n</html>");	    
 	  int cant = send(socket_to_browser,merror,strlen(merror),MSG_NOSIGNAL);
 	  if (cant ==-1){
 	      printf("fallo el send de metodo invalido\n");
 	  }
 	  free(merror);
-     	  printf("cerrando por metodo valido %d\n",socket_to_browser);
 	  if (close(socket_to_browser) <0){
 		perror("ERROR cerrando socket:\n");			
 	  }
-	  printf("cerrado\n");
 	  pthread_exit(NULL);
       }//fin else metodoValido
 
@@ -894,13 +908,13 @@ int main(int argc, char *argv[] ) {
 	//writeLog("Se inicia el servidor proxy.");
 	signal(SIGINT, signal_callback_handler);
 	pthread_t ad;
-	int alpedo=2;
+	int inutilizable=2;
       
 
 	booldenyPOST=false;
 	booldenyGET=false;
 
-	cout<<"HOLA SOY EL SERVIDOR PROXY, VENGO A FLOTAR\n";
+	cout<<"Se inicio el servidor proxy\n";
 	cout.flush();
 	//Creo un socket para la conexion con el cliente
 	server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -941,9 +955,9 @@ int main(int argc, char *argv[] ) {
 	    return (-1);
 	}
 	int resultPC;
-        resultPC=pthread_create(&ad,NULL,atencion_administrador,(void*)alpedo);
+        resultPC=pthread_create(&ad,NULL,atencion_administrador,(void*)inutilizable);
 	if (resultPC<0){
-		writeLog("SERVIDOR PROXY: Hubo error al crear el hilo del administrador, el numero de error es: " +resultPC);
+		writeLog("SERVIDOR PROXY: Hubo error al crear el hilo del administrador.");
 	        return (-1);
 	}
 
@@ -970,6 +984,7 @@ int main(int argc, char *argv[] ) {
 
 	  pthread_attr_setdetachstate  (&attr,  PTHREAD_CREATE_DETACHED); 
 	  if (pthread_create(&hijo,&attr,atenderWeb,(void*)socket_to_client) <0){
+	    writeLog("SERVIDOR PROXY: Hubo error al crear el thread de atencioin web.");
 	    close(socket_to_client);
 	  }
 		}

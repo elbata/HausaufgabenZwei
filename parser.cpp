@@ -20,6 +20,15 @@ using namespace std;
     }
   }
 
+  bool esPost(char* method){
+    string s(method);
+    if (s.find("Post:") >= 0) {
+      return true;
+    }else{
+      return false;
+    }
+  }
+
   char* getHttpMethod(char* httpCode){
     char* auxHttpMethod = (char*) malloc(1024);
     int httpResult = sscanf(httpCode,"%s %*s %*s",auxHttpMethod);
@@ -100,7 +109,7 @@ using namespace std;
     string headers[14];
     headers[0] = "Allow";
     headers[1] = "Authorization";
-    headers[2] = "Content-Legth";
+    headers[2] = "Content-Length";
     headers[3] = "Content-Type";
     headers[4] = "Date";
     headers[5] = "Expires";
@@ -116,8 +125,8 @@ using namespace std;
     string s(httpCode);
     
     
-    printf("ADENTRO ME LLEGA ESTOOOOOO STRINGGGGG: %s",s.c_str());
-    printf("ADENTRO ME LLEGA ESTOOOOOO CHAR*****: %s",httpCode);
+    //printf("ADENTRO ME LLEGA ESTOOOOOO STRINGGGGG: %s",s.c_str());
+    //printf("ADENTRO ME LLEGA ESTOOOOOO CHAR*****: %s",httpCode);
     
     char* headersRestantes = NULL;
     int sizeHeadersRestantes = 0;
@@ -136,34 +145,53 @@ using namespace std;
 	cout << "Inicio: " << inicio << "\n"; cout.flush();
         cout << "Fin: " << fin << "\n" ; cout.flush();
         auxHeadersRestantes = (char*) malloc(sizeHeadersRestantes + (fin - inicio) + 2);
-	cout << "1"; cout.flush();
+	//cout << "1"; cout.flush();
         memcpy(auxHeadersRestantes, headersRestantes, sizeHeadersRestantes); 
-	cout << "2"; cout.flush();
+	//cout << "2"; cout.flush();
 	memcpy(auxHeadersRestantes + sizeHeadersRestantes, httpCode + inicio, (fin - inicio));
-	cout << "3"; cout.flush();
+	//cout << "3"; cout.flush();
 	memcpy(auxHeadersRestantes + sizeHeadersRestantes + (fin - inicio), "\r\n", 2);
-	cout << "4"; cout.flush();
+	//cout << "4"; cout.flush();
 	sizeAuxHeadersRestantes = sizeHeadersRestantes + (fin - inicio) + 2;
-	cout << "5"; cout.flush();
+	//cout << "5"; cout.flush();
 	
 	if (headersRestantes != NULL) { free(headersRestantes); }
-	cout << "6"; cout.flush();
+	//cout << "6"; cout.flush();
         headersRestantes = (char*) malloc(sizeAuxHeadersRestantes);
-	cout << "7"; cout.flush();
+	//cout << "7"; cout.flush();
         memcpy(headersRestantes, auxHeadersRestantes, sizeAuxHeadersRestantes);
-	cout << "8"; cout.flush();
+	//cout << "8"; cout.flush();
         sizeHeadersRestantes = sizeAuxHeadersRestantes;
-	cout << "9"; cout.flush();
+	//cout << "9"; cout.flush();
 	 
         free(auxHeadersRestantes);
       }else{
-	      cout << "Inicio MENOS UNO: " << inicio << "\n"; cout.flush();
+	      //cout << "Inicio MENOS UNO: " << inicio << "\n"; cout.flush();
       }
     }
     size = sizeHeadersRestantes;
     return headersRestantes;
   }
 
-//GET http://www.fing.edu.uy/system/application/images/pie_inf.jpg HTTP/1.1
-//Host: www.fing.edu.uy
-//User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1.14) Gecko/20080404 Firefox/2.0.0.14
+
+
+  char* getPostBody(char* httpCode, int sizeTotal, int &sizeBody){
+
+    printf("ME LLEGA ESTE CODE:\n%s",httpCode);
+    int inicio;
+    int fin;
+    string s(httpCode);
+    inicio = s.find("\r\n\r\n");
+    inicio = inicio + 4;
+    fin = sizeTotal;
+    printf("INICIO %d\n",inicio);
+    printf("FIN %d\n",fin);
+    
+    sizeBody = fin - inicio + 1;
+    char* body = (char*) malloc(sizeBody);
+    memcpy(body, httpCode + inicio, sizeBody); 
+	
+    printf("CUERPO:\n%s",body);
+    return body;
+  }
+
